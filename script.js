@@ -20,20 +20,27 @@ upload.addEventListener("change", async (e) => {
   img.src = URL.createObjectURL(file);
 
   img.onload = async () => {
-    // Draw the original image on canvas
-    const inputTensor = tf.browser.fromPixels(img).toFloat().div(255).expandDims(0);
+  canvas.width = img.width;
+  canvas.height = img.height;
+  ctx.drawImage(img, 0, 0);
 
-    const outputTensor = await tfliteModel.predict(inputTensor);
+  if (!tfliteModel) {
+    alert("Model not loaded yet!");
+    return;
+  }
 
-    const output = outputTensor.squeeze().mul(255).clipByValue(0, 255).cast('int32');
+  // Convert image to tensor
+  const inputTensor = tf.browser.fromPixels(img).toFloat().div(255.0).expandDims(0);
+  console.log("Image shape:", inputTensor.shape);
 
-    await tf.browser.toPixels(output, canvas);
-
-    inputTensor.dispose();
-    outputTensor.dispose();
-
-    console.log("Upscaling complete!");
-  };
+  try {
+    const outputTensor = tfliteModel.predict(inputTensor);
+    console.log("Prediction done:", outputTensor);
+  } catch (err) {
+    console.error("Model prediction failed:", err);
+    alert("Model prediction failed. Likely due to unsupported ops.");
+  }
+};
 });
 
 loadModel();
