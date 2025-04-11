@@ -1,20 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-tflite"></script>
+  <meta charset="UTF-8">
   <title>Real-ESRGAN Upscaler</title>
   <link rel="stylesheet" href="style.css">
+  <!-- TensorFlow JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-tflite"></script>
 </head>
 <body>
   <h1>Image Upscaler</h1>
   <input type="file" id="upload" accept="image/*" />
   <br>
-<button id="process">Upscale Image</button>
+  <button id="process">Upscale Image</button>
   <canvas id="canvas"></canvas>
 
-  <!-- TensorFlow Lite Web -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-tflite"></script>
+  <!-- Scripts -->
   <script src="script.js"></script>
   <script src="real-esrgan.js"></script>
 </body>
