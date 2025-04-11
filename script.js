@@ -5,7 +5,7 @@ const ctx = canvas.getContext("2d");
 let tfliteModel;
 
 async function loadModel() {
-  tfliteModel = await tfliteWebAPI.loadTFLiteModel('Real-ESRGAN-x4plus.tflite');
+  tfliteModel = await tflite.loadTFLiteModel('Real-ESRGAN-x4plus.tflite');
   console.log("Model loaded!");
 }
 
