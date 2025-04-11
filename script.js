@@ -5,8 +5,7 @@ const ctx = canvas.getContext("2d");
 let tfliteModel;
 
 async function loadModel() {
-  const tflite = await tfliteWebAPI.loadTFLiteModel('Real-ESRGAN-x4plus.tflite');
-  tfliteModel = tflite;
+  tfliteModel = await tflite.loadTFLiteModel("Real-ESRGAN-x4plus.tflite");
   console.log("Model loaded!");
 }
 
@@ -20,8 +19,19 @@ upload.addEventListener("change", async (e) => {
     canvas.height = img.height;
     ctx.drawImage(img, 0, 0);
 
-    // TODO: Add upscaling logic here
-    alert("Image loaded, but we haven't added processing yet 😅");
+    // Convert image to tensor
+    const input = tf.browser.fromPixels(canvas)
+      .toFloat()
+      .div(255.0)
+      .expandDims();
+
+    // Run the model
+    const output = tfliteModel.predict(input);
+    const result = output.squeeze();
+
+    // Display result
+    await tf.browser.toPixels(result, canvas);
+    alert("Upscaling complete!");
   };
 });
 
