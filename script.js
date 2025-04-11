@@ -5,7 +5,7 @@ const ctx = canvas.getContext("2d");
 let tfliteModel;
 
 async function loadModel() {
-  tfliteModel = await tfliteWebAPI.loadTFLiteModel("Real-ESRGAN-x4plus.tflite");
+  tfliteModel = await tfliteWebAPI.loadTFLiteModel('Real-ESRGAN-x4plus.tflite');
   console.log("Model loaded!");
 }
 
@@ -20,27 +20,19 @@ upload.addEventListener("change", async (e) => {
   img.src = URL.createObjectURL(file);
 
   img.onload = async () => {
-    // Draw original image
-    canvas.width = img.width;
-    canvas.height = img.height;
-    ctx.drawImage(img, 0, 0);
+    // Draw the original image on canvas
+    const inputTensor = tf.browser.fromPixels(img).toFloat().div(255).expandDims(0);
 
-    // Convert image to tensor
-    const imageTensor = tf.browser.fromPixels(canvas)
-      .toFloat()
-      .div(255.0)
-      .expandDims(0);
+    const outputTensor = await tfliteModel.predict(inputTensor);
 
-    // Run inference
-    const output = tfliteModel.predict(imageTensor);
+    const output = outputTensor.squeeze().mul(255).clipByValue(0, 255).cast('int32');
 
-    // Post-process output
-    const upscaled = output.squeeze().mul(255).clipByValue(0, 255).cast("int32");
-    await tf.browser.toPixels(upscaled, canvas);
+    await tf.browser.toPixels(output, canvas);
 
-    imageTensor.dispose();
-    output.dispose();
-    upscaled.dispose();
+    inputTensor.dispose();
+    outputTensor.dispose();
+
+    console.log("Upscaling complete!");
   };
 });
 
