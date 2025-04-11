@@ -3,6 +3,7 @@ const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
 let tfliteModel;
+let imageData;
 
 async function loadModel() {
   tfliteModel = await tflite.loadTFLiteModel('Real-ESRGAN-x4plus.tflite');
@@ -11,36 +12,35 @@ async function loadModel() {
 
 upload.addEventListener("change", async (e) => {
   const file = e.target.files[0];
-  if (!file || !tfliteModel) {
+  const img = new Image();
+  img.src = URL.createObjectURL(file);
+
+  img.onload = () => {
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+    imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    console.log("Image loaded!");
+  };
+});
+
+async function upscaleImage() {
+  if (!tfliteModel || !imageData) {
     alert("Please upload an image and make sure model is loaded.");
     return;
   }
 
-  const img = new Image();
-  img.src = URL.createObjectURL(file);
+  const input = tf.browser.fromPixels(imageData).toFloat().div(255.0).expandDims(0);
+  const output = tfliteModel.predict(input);
+  const squeezed = output.squeeze().mul(255).cast("int32");
 
-  img.onload = async () => {
-  canvas.width = img.width;
-  canvas.height = img.height;
-  ctx.drawImage(img, 0, 0);
+  await tf.browser.toPixels(squeezed, canvas);
+  console.log("Upscaling complete!");
+}
 
-  if (!tfliteModel) {
-    alert("Model not loaded yet!");
-    return;
-  }
-
-  // Convert image to tensor
-  const inputTensor = tf.browser.fromPixels(img).toFloat().div(255.0).expandDims(0);
-  console.log("Image shape:", inputTensor.shape);
-
-  try {
-    const outputTensor = tfliteModel.predict(inputTensor);
-    console.log("Prediction done:", outputTensor);
-  } catch (err) {
-    console.error("Model prediction failed:", err);
-    alert("Model prediction failed. Likely due to unsupported ops.");
-  }
-};
+loadModel().then(() => {
+  // Automatically run upscale after image upload
+  upload.addEventListener("change", () => {
+    setTimeout(() => upscaleImage(), 100); // Slight delay to ensure image is ready
+  });
 });
-
-loadModel();
