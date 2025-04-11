@@ -1,10 +1,8 @@
 const upload = document.getElementById("upload");
-const processBtn = document.getElementById("process");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-let tfliteModel;
-let imgElement;
+let tfliteModel = null;
 
 async function loadModel() {
   const tflite = await tfliteWebAPI.loadTFLiteModel('Real-ESRGAN-x4plus.tflite');
@@ -14,33 +12,32 @@ async function loadModel() {
 
 upload.addEventListener("change", async (e) => {
   const file = e.target.files[0];
-  imgElement = new Image();
-  imgElement.src = URL.createObjectURL(file);
-
-  imgElement.onload = () => {
-    canvas.width = imgElement.width;
-    canvas.height = imgElement.height;
-    ctx.drawImage(imgElement, 0, 0);
-  };
-});
-
-processBtn.addEventListener("click", async () => {
-  if (!imgElement || !tfliteModel) {
-    alert("Please upload an image and make sure model is loaded.");
+  if (!file || !tfliteModel) {
+    alert("Please wait for model to load and then upload an image.");
     return;
   }
 
-  // Draw image to canvas and get its data
-  ctx.drawImage(imgElement, 0, 0);
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const input = new ImageData(imageData.data, canvas.width, canvas.height);
+  const img = new Image();
+  img.src = URL.createObjectURL(file);
 
-  // Run inference
-  const output = await tfliteModel.infer(input);
+  img.onload = async () => {
+    const tempCanvas = document.createElement("canvas");
+    const tempCtx = tempCanvas.getContext("2d");
+    tempCanvas.width = img.width;
+    tempCanvas.height = img.height;
+    tempCtx.drawImage(img, 0, 0);
 
-  // Resize canvas and show result
-  canvas.width = output.width;
-  canvas.height = output.height;
-  ctx.putImageData(output, 0, 0);
+    const inputImageData = tempCtx.getImageData(0, 0, img.width, img.height);
+
+    // Run inference
+    const output = tfliteModel.predict(inputImageData);
+    const outputImageData = new ImageData(output.data, output.width, output.height);
+
+    // Show on main canvas
+    canvas.width = output.width;
+    canvas.height = output.height;
+    ctx.putImageData(outputImageData, 0, 0);
+  };
 });
 
+loadModel();
