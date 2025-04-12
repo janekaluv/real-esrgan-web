@@ -2,7 +2,8 @@
 <html>
 <head>
   <title>U²-Net Background Remover</title>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.12.0/dist/tf.min.js"></script>
+  <!-- Load the full TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.18.0/dist/tf.min.js"></script>
 </head>
 <body>
   <h2>Remove Background with U²-Net (TFJS)</h2>
@@ -10,26 +11,24 @@
   <br><br>
   <canvas id="canvas"></canvas>
 
-  <script type="module">
-    import * as tf from "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.18.0";
-
+  <script>
     const upload = document.getElementById("upload");
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
 
     const MODEL_URL = "u2netp_tfjs/model.json";
-
     let model;
 
     async function loadModel() {
       model = await tf.loadGraphModel(MODEL_URL);
-      console.log("Model loaded!");
+      console.log("✅ U²-Net model loaded!");
     }
 
     function preprocess(img) {
       return tf.tidy(() => {
         return tf.image.resizeBilinear(tf.browser.fromPixels(img), [320, 320])
-                 .div(255).expandDims(0);
+                 .div(255)
+                 .expandDims(0);
       });
     }
 
@@ -41,18 +40,16 @@
       });
     }
 
-    function applyMask(originalImg, mask) {
-      const [w, h] = [originalImg.width, originalImg.height];
-      const imgData = ctx.getImageData(0, 0, w, h);
+    async function applyMask(mask, width, height) {
+      const imgData = ctx.getImageData(0, 0, width, height);
       const data = imgData.data;
+      const maskData = await mask.data();
 
-      return mask.data().then(maskData => {
-        for (let i = 0; i < maskData.length; i++) {
-          const alpha = maskData[i];
-          data[i * 4 + 3] = alpha;
-        }
-        ctx.putImageData(imgData, 0, 0);
-      });
+      for (let i = 0; i < maskData.length; i++) {
+        data[i * 4 + 3] = maskData[i]; // Set alpha channel
+      }
+
+      ctx.putImageData(imgData, 0, 0);
     }
 
     upload.addEventListener("change", async (e) => {
@@ -67,9 +64,9 @@
 
         const input = preprocess(img);
         const output = await model.executeAsync(input);
-        const mask = postprocess(output[0], img.height, img.width);
-        await applyMask(img, mask);
-        console.log("Background removed!");
+        const mask = postprocess(output, img.width, img.height);
+        await applyMask(mask, img.width, img.height);
+        console.log("🎉 Background removed!");
       };
     });
 
