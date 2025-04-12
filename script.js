@@ -6,7 +6,7 @@ let tfliteModel;
 let imageData;
 
 async function loadModel() {
-  tfliteModel = await tflite.loadTFLiteModel('Real-ESRGAN-x4plus.tflite');
+tfliteModel = await tflite.loadTFLiteModel('https://janekaluv.github.io/real-esrgan-web/Real-ESRGAN-x4plus.tflite');
   console.log("Model loaded!");
 }
 
