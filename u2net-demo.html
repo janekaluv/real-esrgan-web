@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>U²-Net Background Remover</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+</head>
+<body>
+  <h2>Remove Background with U²-Net (TFJS)</h2>
+  <input type="file" id="upload" accept="image/*" />
+  <br><br>
+  <canvas id="canvas"></canvas>
+
+  <script type="module">
+    import * as tf from "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.18.0";
+
+    const upload = document.getElementById("upload");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    const MODEL_URL = "u2netp_tfjs/model.json";
+
+    let model;
+
+    async function loadModel() {
+      model = await tf.loadGraphModel(MODEL_URL);
+      console.log("Model loaded!");
+    }
+
+    function preprocess(img) {
+      return tf.tidy(() => {
+        return tf.image.resizeBilinear(tf.browser.fromPixels(img), [320, 320])
+                 .div(255).expandDims(0);
+      });
+    }
+
+    function postprocess(output, width, height) {
+      return tf.tidy(() => {
+        let mask = output.squeeze().mul(255).cast("int32");
+        mask = tf.image.resizeBilinear(mask.expandDims(-1), [height, width]).squeeze();
+        return mask;
+      });
+    }
+
+    function applyMask(originalImg, mask) {
+      const [w, h] = [originalImg.width, originalImg.height];
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const data = imgData.data;
+
+      return mask.data().then(maskData => {
+        for (let i = 0; i < maskData.length; i++) {
+          const alpha = maskData[i];
+          data[i * 4 + 3] = alpha;
+        }
+        ctx.putImageData(imgData, 0, 0);
+      });
+    }
+
+    upload.addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+
+      img.onload = async () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+
+        const input = preprocess(img);
+        const output = await model.executeAsync(input);
+        const mask = postprocess(output[0], img.height, img.width);
+        await applyMask(img, mask);
+        console.log("Background removed!");
+      };
+    });
+
+    loadModel();
+  </script>
+</body>
+</html>
