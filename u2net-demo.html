@@ -25,12 +25,15 @@
     }
 
     function preprocess(img) {
-      return tf.tidy(() => {
-        return tf.image.resizeBilinear(tf.browser.fromPixels(img), [320, 320])
-                 .div(255)
-                 .expandDims(0);
-      });
-    }
+  return tf.tidy(() => {
+    return tf.browser.fromPixels(img)
+      .resizeBilinear([320, 320])
+      .toFloat()
+      .div(255)
+      .expandDims(0)
+      .transpose([0, 3, 1, 2]);  // NHWC → NCHW
+  });
+}
 
     function postprocess(output, width, height) {
       return tf.tidy(() => {
