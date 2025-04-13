@@ -67,7 +67,7 @@
 
         const input = preprocess(img);
         const output = await model.executeAsync(input);
-        const mask = postprocess(output, img.width, img.height);
+        const mask = postprocess(output[0], img.width, img.height);
         await applyMask(mask, img.width, img.height);
         console.log("🎉 Background removed!");
       };
